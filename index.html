@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f0f1a; color: #eee; font-family: 'Segoe UI', sans-serif; padding: 10px; }
+  h2 { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .task { padding: 8px 10px; margin-bottom: 6px; border-radius: 8px; border-left: 4px solid; }
+  .task.high { background: #2d1b1b; border-color: #e53935; }
+  .task.medium { background: #2d2a1b; border-color: #fdd835; }
+  .task.low { background: #1b2d1e; border-color: #43a047; }
+  .task-name { font-size: 14px; font-weight: 500; }
+  .meta { font-size: 11px; color: #888; margin-top: 3px; display: flex; gap: 8px; }
+  .cat { background: #333; padding: 1px 6px; border-radius: 10px; }
+  .due { color: #aaa; }
+  .empty { color: #555; font-size: 13px; text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+<h2 id="title">📋 Loading...</h2>
+<div id="tasks"></div>
+
+<script>
+const SHEET_ID = '1kRTkhM3geUfE3YJq5mInglOXfM4wOXbeMoHiEntoUTg';
+const API_KEY = 'AIzaSyD-placeholder'; // We'll fill this in next step
+
+async function loadTasks() {
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Tasks!A:H?key=${API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const rows = data.values.slice(1).filter(r => r[0] && r[4] !== 'Done');
+
+    const priorityOrder = { '🔴 High': 0, '🟡 Medium': 1, '🟢 Low': 2 };
+    rows.sort((a, b) => (priorityOrder[a[1]] ?? 1) - (priorityOrder[b[1]] ?? 1));
+
+    document.getElementById('title').textContent = `📋 Tasks (${rows.length})`;
+    document.getElementById('tasks').innerHTML = rows.map(r => {
+      let cls = 'medium';
+      if (r[1] === '🔴 High') cls = 'high';
+      else if (r[1] === '🟢 Low') cls = 'low';
+      const due = r[2] ? `<span class="due">${r[2]}</span>` : '';
+      const cat = r[3] ? `<span class="cat">${r[3]}</span>` : '';
+      return `<div class="task ${cls}"><div class="task-name">${r[0]}</div><div class="meta">${cat}${due}</div></div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('tasks').innerHTML = '<div class="empty">Error loading tasks</div>';
+  }
+}
+
+loadTasks();
+setInterval(loadTasks, 300000); // refresh every 5 mins
+</script>
+</body>
+</html>
